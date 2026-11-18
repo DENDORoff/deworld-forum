@@ -21,6 +21,8 @@ export function SignUpForm() {
   const [state, formAction, isPending] = useActionState(registerAction, initialState);
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
 
   const checks = passwordChecks(password);
   const fieldErrors = state.fieldErrors ?? {};
@@ -39,6 +41,8 @@ export function SignUpForm() {
           autoComplete="username"
           pattern="[A-Za-z0-9_]{3,24}"
           placeholder="Steve_2026"
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
           aria-invalid={Boolean(fieldErrors.username)}
           aria-describedby={fieldErrors.username ? "username-error" : undefined}
           className="focus-ring mt-1.5 w-full rounded-xl border border-stone-200 px-4 py-3 text-base placeholder:text-stone-400"
@@ -63,6 +67,8 @@ export function SignUpForm() {
           required
           autoComplete="email"
           placeholder="you@example.com"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
           aria-invalid={Boolean(fieldErrors.email)}
           aria-describedby={fieldErrors.email ? "email-error" : undefined}
           className="focus-ring mt-1.5 w-full rounded-xl border border-stone-200 px-4 py-3 text-base placeholder:text-stone-400"

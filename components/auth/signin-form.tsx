@@ -12,6 +12,10 @@ export function SignInForm({ callbackUrl }: { callbackUrl: string }) {
   const [state, formAction, isPending] = useActionState(signInAction, initialState);
   const [showPassword, setShowPassword] = useState(false);
   const [showTotp, setShowTotp] = useState(false);
+  // Контролируемые поля: сохраняем введённые данные после неудачного сабмита
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [totp, setTotp] = useState("");
 
   // Раскрываем поле 2FA сразу, если сервер попросил код (корректировка во время рендера)
   const [totpPromptShown, setTotpPromptShown] = useState(false);
@@ -35,6 +39,8 @@ export function SignInForm({ callbackUrl }: { callbackUrl: string }) {
           required
           autoComplete="email"
           placeholder="you@example.com"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
           className="focus-ring mt-1.5 w-full rounded-xl border border-stone-200 px-4 py-3 text-base placeholder:text-stone-400"
         />
       </div>
@@ -51,6 +57,8 @@ export function SignInForm({ callbackUrl }: { callbackUrl: string }) {
             required
             autoComplete="current-password"
             placeholder="Ваш пароль"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
             className="focus-ring w-full rounded-xl border border-stone-200 px-4 py-3 pr-12 text-base placeholder:text-stone-400"
           />
           <button
@@ -78,6 +86,8 @@ export function SignInForm({ callbackUrl }: { callbackUrl: string }) {
             pattern="[0-9 ]{6,7}"
             maxLength={7}
             placeholder="123456"
+            value={totp}
+            onChange={(event) => setTotp(event.target.value)}
             className="focus-ring mt-1.5 w-full rounded-xl border border-orange-300 bg-orange-50/40 px-4 py-3 text-base tracking-[0.3em] placeholder:text-stone-400"
           />
           <p className="mt-1 text-xs text-stone-500">

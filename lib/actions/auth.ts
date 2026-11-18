@@ -50,8 +50,6 @@ export async function signInAction(
   const callbackUrl = safeCallbackUrl(formData.get("callbackUrl"));
 
   try {
-    // Внимание: undefined-поля в объекте сериализуются строкой "undefined" —
-    // передаём только реально заданные значения
     await signIn("credentials", {
       email,
       password,
