@@ -1,0 +1,464 @@
+// DEWORLD Forum — Prisma schema
+// PostgreSQL (Neon) via driver adapter (@prisma/adapter-pg)
+// Документация: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Пользователи и аутентификация (Auth.js v5)
+// ──────────────────────────────────────────────────────────────────────────
+
+enum Role {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+model User {
+  id                String    @id @default(cuid())
+  /// Отображаемое имя
+  name              String?
+  /// Уникальный логин на форуме (a-z, 0-9, _ — 3..24 символа)
+  username          String?   @unique
+  email             String?   @unique
+  emailVerified     DateTime?
+  passwordHash      String?
+  image             String?
+
+  role              Role      @default(USER)
+  /// Активная премиум-подписка до этой даты (null — нет подписки)
+  premiumUntil      DateTime?
+
+  /// Привязанный Minecraft-ник (проверяется через LimboAuth / плагин)
+  minecraftUsername String?   @unique
+  /// ID аккаунта в БД LimboAuth (для сверки статистики и привязки)
+  limboAuthId       Int?      @unique
+
+  /// TOTP-секрет (Google Authenticator и аналоги), хранится в base32
+  totpSecret        String?
+  totpEnabled       Boolean   @default(false)
+
+  /// Время последнего входа (для антиспама и «онлайн сейчас»)
+  lastLoginAt       DateTime?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  accounts          Account[]
+  sessions          Session[]
+
+  topics            Topic[]
+  posts             Post[]
+  postLikes         PostLike[]
+
+  reports           Report[]         @relation("ReportReporter")
+  resolvedReports   Report[]         @relation("ReportResolver")
+
+  tickets           Ticket[]
+  ticketMessages    TicketMessage[]
+
+  wikiArticles      WikiArticle[]
+  wikiComments      WikiComment[]
+
+  resources         Resource[]
+  resourceRatings   ResourceRating[]
+  resourceDownloads ResourceDownload[]
+
+  achievements      UserAchievement[]
+  auditLogs         AuditLog[]
+  chatMessages      ChatMessage[]
+
+  @@index([role])
+  @@index([createdAt])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Форум
+// ──────────────────────────────────────────────────────────────────────────
+
+model Category {
+  id          String   @id @default(cuid())
+  /// Человекочитаемый идентификатор в URL: /forum/<slug>
+  slug        String   @unique
+  name        String
+  description String?
+  /// Имя иконки lucide-react (сообщество, sparkles, shield …)
+  icon        String?  @default("MessagesSquare")
+  position    Int      @default(0)
+  /// Раздел доступен только премиум-подписчикам
+  premiumOnly Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  topics      Topic[]
+
+  @@index([position])
+}
+
+model Topic {
+  id            String   @id @default(cuid())
+  categoryId    String
+  authorId      String
+  title         String
+  /// Короткий URL-идентификатор (транслитерация заголовка): /forum/topic/<slug>
+  slug          String   @unique
+  content       String   @db.Text
+  pinned        Boolean  @default(false)
+  locked        Boolean  @default(false)
+  premiumOnly   Boolean  @default(false)
+  views         Int      @default(0)
+  replyCount    Int      @default(0)
+  lastPostAt    DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  category      Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  author        User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  posts         Post[]
+
+  @@index([categoryId, pinned, lastPostAt(sort: Desc)])
+  @@index([authorId])
+  @@index([createdAt])
+}
+
+model Post {
+  id              String   @id @default(cuid())
+  topicId         String
+  authorId        String
+  content         String   @db.Text
+  /// Отмечен автором темы как лучший ответ
+  isSolution      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  topic           Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  author          User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  likes           PostLike[]
+
+  @@index([topicId, createdAt])
+  @@index([authorId])
+}
+
+model PostLike {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Общий чат (виджет на главной форума)
+// ──────────────────────────────────────────────────────────────────────────
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt(sort: Desc)])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Вики
+// ──────────────────────────────────────────────────────────────────────────
+
+model WikiArticle {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  excerpt     String?
+  content     String   @db.Text
+  published   Boolean  @default(false)
+  authorId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author      User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments    WikiComment[]
+
+  @@index([published, updatedAt(sort: Desc)])
+}
+
+model WikiComment {
+  id        String      @id @default(cuid())
+  articleId String
+  authorId  String
+  content   String
+  createdAt DateTime    @default(now())
+
+  article   WikiArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  author    User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([articleId, createdAt])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Ресурсы (моды, шейдеры, сборки …)
+// ──────────────────────────────────────────────────────────────────────────
+
+enum ResourceType {
+  Mod
+  Shader
+  ResourcePack
+  DataPack
+  Modpack
+  Plugin
+  Schematic
+  Guide
+  Other
+}
+
+model Resource {
+  id            String       @id @default(cuid())
+  slug          String       @unique
+  title         String
+  description   String       @db.Text
+  type          ResourceType @default(Other)
+  version       String?
+  fileUrl       String?
+  fileName      String?
+  /// Размер файла в байтах
+  fileSize      Int?
+  externalUrl   String?
+  license       String?
+  imageUrl      String?
+  tags          String[]
+  downloads     Int          @default(0)
+  likeCount     Int          @default(0)
+  dislikeCount  Int          @default(0)
+  authorId      String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  author        User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  ratings       ResourceRating[]
+  downloadLogs  ResourceDownload[]
+
+  @@index([type, createdAt(sort: Desc)])
+  @@index([authorId])
+}
+
+model ResourceRating {
+  id         String   @id @default(cuid())
+  resourceId String
+  userId     String
+  /// +1 лайк / -1 дизлайк
+  value      Int
+  createdAt  DateTime @default(now())
+
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([resourceId, userId])
+}
+
+model ResourceDownload {
+  id         String   @id @default(cuid())
+  resourceId String
+  userId     String?
+  createdAt  DateTime @default(now())
+
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([resourceId, createdAt])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Тикеты поддержки
+// ──────────────────────────────────────────────────────────────────────────
+
+enum TicketStatus {
+  OPEN
+  ANSWERED
+  CLOSED
+}
+
+model Ticket {
+  id         String       @id @default(cuid())
+  /// Человекочитаемый номер тикета
+  number     Int          @unique @default(autoincrement())
+  subject    String
+  userId     String
+  status     TicketStatus @default(OPEN)
+  closedById String?
+  closedAt   DateTime?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages   TicketMessage[]
+
+  @@index([status, updatedAt(sort: Desc)])
+  @@index([userId, updatedAt(sort: Desc)])
+}
+
+model TicketMessage {
+  id        String   @id @default(cuid())
+  ticketId  String
+  authorId  String
+  content   String   @db.Text
+  /// Ответ от сотрудника (модератора/админа)
+  staff     Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Жалобы и модерация
+// ──────────────────────────────────────────────────────────────────────────
+
+enum ReportTargetType {
+  TOPIC
+  POST
+  RESOURCE
+  WIKI_ARTICLE
+  USER
+}
+
+enum ReportStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+model Report {
+  id           String           @id @default(cuid())
+  reporterId   String
+  targetType   ReportTargetType
+  targetId     String
+  reason       String           @db.Text
+  status       ReportStatus     @default(OPEN)
+  resolution   String?
+  resolvedById String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  reporter     User             @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  resolvedBy   User?            @relation("ReportResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt(sort: Desc)])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Достижения
+// ──────────────────────────────────────────────────────────────────────────
+
+enum AchievementScope {
+  FORUM
+  MINECRAFT
+}
+
+model Achievement {
+  id          String           @id @default(cuid())
+  /// Стабильный ключ: forum_posts_10, mc_diamonds_found …
+  key         String           @unique
+  title       String
+  description String
+  icon        String?
+  scope       AchievementScope @default(FORUM)
+  /// Порог для автоматической выдачи (null — выдаётся вручную/логикой)
+  threshold   Int?
+  createdAt   DateTime         @default(now())
+
+  users       UserAchievement[]
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime    @default(now())
+
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Системные настройки (редактируются из админки) и аудит-логи
+// ──────────────────────────────────────────────────────────────────────────
+
+model Setting {
+  key       String   @id
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  targetType String?
+  targetId   String?
+  /// Произвольные доп. данные (JSON)
+  metadata   Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+}
