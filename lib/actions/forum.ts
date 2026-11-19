@@ -13,6 +13,8 @@ import { prisma } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 import { isPremiumActive } from "@/lib/utils";
 import { slugifyOrFallback } from "@/lib/translit";
+import { notify, notifyMentions } from "@/lib/notifications";
+import { logBotEvent } from "@/lib/bot-logger";
 import {
   postCreateSchema,
   topicCreateSchema,
@@ -124,6 +126,19 @@ export async function createTopicAction(
 
   await writeAudit(user.id, "topic.create", "TOPIC", topic.slug, { title: parsed.data.title });
 
+  const topicLink = `/forum/topic/${topic.slug}`;
+  await notifyMentions(parsed.data.content.trim(), user.id, topicLink);
+
+  const actor = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { name: true, username: true },
+  });
+  await logBotEvent("topic_created", {
+    actor: { name: actor?.name ?? actor?.username ?? "Участник", username: actor?.username ?? null },
+    target: parsed.data.title.trim(),
+    targetUrl: topicLink,
+  });
+
   revalidatePath("/forum");
   revalidatePath(`/forum/${category.slug}`);
   return { ok: true, slug: topic.slug };
@@ -169,24 +184,55 @@ export async function createPostAction(
     return { ok: false, error: "Раздел доступен только премиум-подписчикам" };
   }
 
-  await prisma.$transaction([
-    prisma.post.create({
-      data: {
-        topicId: topic.id,
-        authorId: user.id,
-        content: parsed.data.content.trim(),
-      },
-    }),
-    prisma.topic.update({
-      where: { id: topic.id },
-      data: {
-        replyCount: { increment: 1 },
-        lastPostAt: new Date(),
-      },
-    }),
-  ]);
+  const result = await prisma.post.create({
+    data: {
+      topicId: topic.id,
+      authorId: user.id,
+      content: parsed.data.content.trim(),
+    },
+    select: { id: true },
+  });
+
+  await prisma.topic.update({
+    where: { id: topic.id },
+    data: {
+      replyCount: { increment: 1 },
+      lastPostAt: new Date(),
+    },
+  });
 
   await writeAudit(user.id, "post.create", "TOPIC", topic.slug);
+
+  // Уведомления: автору темы (если отвечал не он) и упомянутым
+  const postLink = `/forum/topic/${topic.slug}#post-${result.id}`;
+  const fresh = await prisma.topic.findUnique({
+    where: { id: topic.id },
+    select: { authorId: true, title: true },
+  });
+  if (fresh && fresh.authorId !== user.id) {
+    const actor = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { name: true, username: true },
+    });
+    await notify({
+      userId: fresh.authorId,
+      type: "reply",
+      title: `${actor?.name ?? actor?.username ?? "Участник"} ответил в теме «${fresh.title.slice(0, 60)}»`,
+      body: parsed.data.content.trim().replace(/\s+/g, " ").slice(0, 140),
+      link: postLink,
+    });
+  }
+  await notifyMentions(parsed.data.content.trim(), user.id, postLink);
+
+  const postActor = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { name: true, username: true },
+  });
+  await logBotEvent("post_created", {
+    actor: { name: postActor?.name ?? postActor?.username ?? "Участник", username: postActor?.username ?? null },
+    target: fresh?.title ?? "тема",
+    targetUrl: postLink,
+  });
 
   revalidatePath(`/forum/topic/${topic.slug}`);
   revalidatePath("/forum");
@@ -311,6 +357,21 @@ export async function markSolutionAction(
       data: { isSolution: true },
     }),
   ]);
+
+  const solutionPost = await prisma.post.findUnique({
+    where: { id: post.id },
+    select: { authorId: true, topic: { select: { title: true } } },
+  });
+  if (solutionPost && solutionPost.authorId !== user.id) {
+    await notify({
+      userId: solutionPost.authorId,
+      type: "solution",
+      title: "Ваш ответ отмечен как решение",
+      body: solutionPost.topic.title.slice(0, 100),
+      link: `/forum/topic/${topic.slug}#post-${post.id}`,
+    });
+  }
+
   await writeAudit(user.id, "topic.solution", "POST", post.id);
 
   revalidatePath(`/forum/topic/${topic.slug}`);

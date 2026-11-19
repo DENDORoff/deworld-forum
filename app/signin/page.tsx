@@ -88,11 +88,9 @@ async function SignInContent({
             <OAuthButtons callbackUrl={callbackUrl} />
           </div>
           <p className="mt-6 text-center text-xs text-stone-500">
-            Забыли пароль? Обратитесь к{" "}
-            <Link href="/forum/support" className="font-semibold text-orange-700 hover:underline">
-              поддержке в форуме
-            </Link>{" "}
-            — вход по почте станет доступен после подключения почтового шлюза.
+            <Link href="/forgot" className="font-semibold text-orange-700 hover:underline">
+              Забыли пароль? Восстановите по почте
+            </Link>
           </p>
         </div>
       </div>

@@ -11,6 +11,9 @@ import { registerSchema } from "@/lib/validations";
 import { rateLimit } from "@/lib/rate-limit";
 import { headers } from "next/headers";
 
+import { logBotEvent } from "@/lib/bot-logger";
+import { verifyTurnstileToken } from "@/lib/turnstile";
+
 export interface AuthFormState {
   status: "idle" | "error";
   message?: string;
@@ -48,6 +51,14 @@ export async function signInAction(
   const password = String(formData.get("password") ?? "");
   const totp = String(formData.get("totp") ?? "").trim();
   const callbackUrl = safeCallbackUrl(formData.get("callbackUrl"));
+
+  const captchaOk = await verifyTurnstileToken(
+    typeof formData.get("turnstile") === "string" ? String(formData.get("turnstile")) : null,
+    await ipAddress(),
+  );
+  if (!captchaOk) {
+    return { status: "error", message: "Подтвердите, что вы не робот (капча)." };
+  }
 
   try {
     await signIn("credentials", {
@@ -124,6 +135,15 @@ export async function registerAction(
   formData: FormData,
 ): Promise<AuthFormState> {
   const ip = await ipAddress();
+
+  const captchaOk = await verifyTurnstileToken(
+    typeof formData.get("turnstile") === "string" ? String(formData.get("turnstile")) : null,
+    ip,
+  );
+  if (!captchaOk) {
+    return { status: "error", message: "Подтвердите, что вы не робот (капча)." };
+  }
+
   const rl = rateLimit(`register:${ip ?? "unknown"}`, 5, 60 * 60 * 1000);
   if (!rl.success) {
     return { status: "error", message: "Слишком много регистраций с вашего IP. Попробуйте позже." };
@@ -183,6 +203,11 @@ export async function registerAction(
         passwordHash,
         role: "USER",
       },
+    });
+    await logBotEvent("user_registered", {
+      actor: { name: username, username },
+      target: email,
+      targetUrl: `/profile/${username}`,
     });
   } catch (error) {
     console.error("[register] не удалось создать пользователя", error);

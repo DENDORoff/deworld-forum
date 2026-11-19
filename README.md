@@ -17,6 +17,10 @@ Minecraft по LimboAuth), 2FA, роли, премиум-подписка, ад�
 - **Auth.js (NextAuth v5)** — JWT-сессии, OAuth-провайдеры, Credentials + LimboAuth
 - **Node 26**
 
+> ⚠️ Production-сборка — через **webpack** (`next build --webpack`): у Turbopack отдельный
+> технический баг (`generate_source_map was canceled`) на нашей сборке. Dev-сервер
+> (`next dev`) работает на Turbopack по-прежнему.
+
 ## Что реализовано
 
 **Лендинг (`/`)**
@@ -33,20 +37,34 @@ Minecraft по LimboAuth), 2FA, роли, премиум-подписка, ад�
 - Закрепление/закрытие тем, лайки, «ответ» как решение обсуждения, счётчик просмотров
 - Премиум-раздел «Премиум-клуб» (доступ по подписке), прем-темы
 - Поиск по темам (`/forum/search`), пагинация, пустой-стейт, скелетоны вместо спинеров
+- Система жалоб: кнопка «Пожаловаться» под темами/ответами, модерация в `/admin/reports`
 
 **Аккаунты**
 - Регистрация/вход по email+паролю (bcrypt), OAuth: Google / GitHub / Discord / VK (env-gated)
 - Вход ником Minecraft по паролю LimboAuth (сверка по БД LimboAuth; опционально, `LIMBOAUTH_DATABASE_URL`)
 - **2FA (TOTP)**: подключение по QR-коду, код запрашивается при входе
 - Привязка любых провайдеров к одному аккаунту; привязка Minecraft-ника в настройках
+- Восстановление пароля по email-токену (1 час, письма только при настроенном SMTP)
 - Роли: `USER` < `MODERATOR` < `ADMIN`; премиум-флаг `premiumUntil`
+- **Cloudflare Turnstile** на регистрации/входе/восстановлении (тестовые ключи в коде; для production задайте `NEXT_PUBLIC_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY`)
+
+**Уведомления**
+- Внутренние: колокольчик в шапке (счётчик, последние события), страница `/notifications`,
+  авто-уведомление автору темы об ответе, о решении его ответа, упоминание `@ник`
+- Email (при настроенном SMTP): ответ в вашей теме, «ответ принят», упоминание
+- Дублирование важных событий в Discord/Telegram-ботов (см. ниже)
 
 **Админка (`/admin`, MODERATOR/ADMIN)**
 - Обзор статистики, аудит-лог действий
 - Разделы форума: создание/изменение/удаление/порядок/премиум-флаг
 - Темы: модерация (закрепить/закрыть/удалить)
 - Пользователи: поиск, роли, выдача/отзыв премиума
-- Настройки сайта без релиза: анонс, подпись цены и преимущества премиума (хранятся в БД, кэш 60 с)
+- **Жалобы**: просмотр, «в работу → решено/отклонено»
+- **Контент сайта без релиза**: навигация в шапке, колонки и слоган футера, реквизиты оператора (152-ФЗ)
+- **Боты для логов**: Discord (текстовые и форум-каналы) и Telegram (группы с топиками),
+  редактируемые шаблоны сообщений с плейсхолдерами (`{user}`, `{target}`, `{target_url}`, `{site}`, `{date}`, `{user_url}`),
+  живое превью в админке, тестовая отправка
+- Настройки сайта: анонс, подпись цены и преимущества премиума
 
 **152-ФЗ**
 - Согласие при регистрации, отдельная страница согласия, политика конфиденциальности,
@@ -84,27 +102,42 @@ npm start
 
 ## Деплой на Vercel + Neon
 
-1. Создайте проект на **Neon** → скопируйте connection string (понадобится `DATABASE_URL`
-   с `?sslmode=require`).
-2. Захостите репозиторий на GitHub (`deworld-forum`).
-3. Import Project на **Vercel** → Framework Preset: Next.js.
-4. **Environment Variables** (Production):
-   - `DATABASE_URL` — строка Neon
-   - `AUTH_SECRET` — сгенерируйте: `npx auth secret`
-   - `AUTH_URL` — `https://de-world.net`
-   - `NEXT_PUBLIC_SITE_URL` — `https://de-world.net`
-   - Плюс OAuth-ключи по мере настройки (см. таблицу ниже)
-5. В Neon выполните миграции один раз: `npx prisma migrate deploy` (с вашего компьютера или из CI,
-   указав `DATABASE_URL` от Neon).
-6. Deploy. `postinstall` на Vercel сам выполнит `prisma generate`.
-7. Привяжите домен `de-world.net` в Vercel → DNS у вашего регистратора.
-8. Обновите `AUTH_URL`/`NEXT_PUBLIC_SITE_URL` на финальный домен.
+Сделано (подробности в PR просит): репозиторий **github.com/DENDORoff/deworld-forum**, проект Vercel `deworld-forum` (production URL: https://deworld-forum.vercel.app), Neon-проект `deworld-forum` (eu-central-1, branch `production`). Production-ветка `master`.
+
+Что сделано:
+1. Neon: проект создан в регионе Europe Central 1 (Frankfurt), `neon init`, `neon env pull` → `DATABASE_URL`/`DATABASE_URL_UNPOOLED`.
+2. Применены обе миграции (`20261119000000_init`, `20261119194649_notifications`), выполнен seed (разделы, достижения, настройки, администратор).
+3. Vercel: проект `deworld-forum`, env-переменные залиты через CLI, production задеплоен, алиас `deworld-forum.vercel.app`. Production открыт публично; превью-деплои закрыты Vercel Authentication.
+4. **Домен `de-world.net` добавлен в проект, но ждёт DNS**: на DNS-провайдере пропишите записи (ниже) и дождитесь верификации — Vercel сам выпустит SSL.
+5. ⚠️ **Инициализация БД**: для production БД сид выполнен. Продовый пароль администратора — `bYaayt3JunNC`, **смените его сразу** в `/settings` → «Логин и пароль».
+
+### DNS для de-world.net
+
+| Тип | Имя | Значение |
+|---|---|---|
+| A | `@` | `76.76.21.21` |
+| CNAME | `www` | `cname.vercel-dns.com` |
+| TXT | `_vercel` | `vc-domain-verify=de-world.net,995817e57fe329e8c4f9` |
+| TXT | `_vercel` | `vc-domain-verify=www.de-world.net,4133388169c6844887eb` |
+
+После верификации и выпуска SSL всё заработает на `de-world.net`.
+
+### Как деплоить дальше
+
+```bash
+# Токен Vercel CLI: npx vercel login (или заведите VERCEL_TOKEN)
+git push                              # код на GitHub (repo уже привязан к Vercel через Git Integration)
+npx vercel deploy --prod --yes --token <token>
+```
+
+После добавления домена и привязки репозитория к проекту в Vercel каждый push в `master` будет деплоиться автоматически.
 
 ### Переменные окружения
 
 | Переменная | Назначение | Обязательна |
 |---|---|---|
-| `DATABASE_URL` | PostgreSQL (Neon) | ✓ |
+| `DATABASE_URL` | PostgreSQL (Neon pooled) | ✓ |
+| `DATABASE_URL_UNPOOLED` | PostgreSQL (Neon, direct — для миграций) | опционально |
 | `AUTH_SECRET` | подпись JWT/сессий | ✓ |
 | `AUTH_URL` | базовый URL (OAuth callback) | ✓ в prod |
 | `NEXT_PUBLIC_SITE_URL` | канонический URL (sitemap/OG) | recommended |

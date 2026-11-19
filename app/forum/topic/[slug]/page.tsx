@@ -23,6 +23,7 @@ import { PostContent } from "@/components/post-content";
 import { PostLikeButton } from "@/components/post-like-button";
 import { PostForm } from "@/components/post-form";
 import { PostDeleteButton, SolutionToggleButton, TopicActions } from "@/components/topic-actions";
+import { ReportButton } from "@/components/report-button";
 
 const PAGE_SIZE = 20;
 
@@ -244,7 +245,13 @@ async function TopicContent({
                         isStaff={isStaff}
                         canDelete
                       />
-                    ) : null}
+                    ) : (
+                      <ReportButton
+                        targetType="TOPIC"
+                        targetId={topic.id}
+                        targetLabel={`Тема: «${topic.title.slice(0, 80)}»`}
+                      />
+                    )}
                   </div>
                 </div>
               </div>
@@ -305,6 +312,13 @@ async function TopicContent({
                           />
                         )}
                         {canRemove && <PostDeleteButton postId={post.id} />}
+                        {!canRemove && currentUserId && (
+                          <ReportButton
+                            targetType="POST"
+                            targetId={post.id}
+                            targetLabel="Ответ на форуме"
+                          />
+                        )}
                       </div>
                     </div>
                   </div>

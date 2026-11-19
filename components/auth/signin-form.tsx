@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { AlertCircle, Eye, EyeOff, Loader2, LogIn } from "lucide-react";
 
 import { signInAction, type AuthFormState } from "@/lib/actions/auth";
+import { Turnstile } from "@/components/turnstile";
 
 const initialState: AuthFormState = { status: "idle" };
 
@@ -110,6 +111,8 @@ export function SignInForm({ callbackUrl }: { callbackUrl: string }) {
           {state.message}
         </p>
       )}
+
+      <Turnstile />
 
       <button
         type="submit"

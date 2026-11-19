@@ -6,6 +6,7 @@ import { AlertCircle, Eye, EyeOff, Loader2, ShieldCheck, UserPlus } from "lucide
 
 import { registerAction, type AuthFormState } from "@/lib/actions/auth";
 import { cn } from "@/lib/utils";
+import { Turnstile } from "@/components/turnstile";
 
 const initialState: AuthFormState = { status: "idle" };
 
@@ -172,6 +173,8 @@ export function SignUpForm() {
           {state.message}
         </p>
       )}
+
+      <Turnstile />
 
       <button
         type="submit"

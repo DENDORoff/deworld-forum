@@ -11,6 +11,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { setSetting } from "@/lib/settings";
 import { categoryFormSchema } from "@/lib/validations";
+import { logBotEvent } from "@/lib/bot-logger";
 
 export interface AdminFormState {
   status: "idle" | "error" | "success";
@@ -186,6 +187,13 @@ export async function setUserRoleAction(
 
   await prisma.user.update({ where: { id: userId }, data: { role: role as "USER" | "MODERATOR" | "ADMIN" } });
   await audit(ctx.userId, "admin.role_change", "USER", userId, { role });
+  const actor = await prisma.user.findUnique({ where: { id: ctx.userId }, select: { name: true, username: true } });
+  const target = await prisma.user.findUnique({ where: { id: userId }, select: { username: true, name: true } });
+  await logBotEvent("role_changed", {
+    actor: { name: actor?.name ?? actor?.username ?? "Админ", username: actor?.username ?? null },
+    target: `${target?.name ?? target?.username ?? userId} → ${role}`,
+    targetUrl: `/profile/${target?.username ?? ""}`,
+  });
   revalidatePath("/admin/users");
   return { status: "success", message: "Роль обновлена." };
 }
@@ -244,6 +252,12 @@ export async function updateSettingsAction(
     setSetting("premium_perks", JSON.stringify(perks)),
   ]);
   await audit(ctx.userId, "admin.settings_update");
+  const siteActor = await prisma.user.findUnique({ where: { id: ctx.userId }, select: { name: true, username: true } });
+  await logBotEvent("settings_changed", {
+    actor: { name: siteActor?.name ?? siteActor?.username ?? "Админ", username: siteActor?.username ?? null },
+    target: "Настройки сайта (анонс / премиум)",
+    targetUrl: "/admin/settings",
+  });
   revalidatePath("/");
   revalidatePath("/premium");
   revalidatePath("/admin/settings");

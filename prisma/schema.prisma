@@ -74,6 +74,7 @@ model User {
   achievements      UserAchievement[]
   auditLogs         AuditLog[]
   chatMessages      ChatMessage[]
+  notifications     Notification[]
 
   @@index([role])
   @@index([createdAt])
@@ -360,6 +361,27 @@ model TicketMessage {
   author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([ticketId, createdAt])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Уведомления (колокольчик на сайте)
+// ──────────────────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  /// Тип события: reply | mention | solution | report | ticket | system
+  type      String
+  title     String
+  body      String?  @db.Text
+  /// Куда ведёт уведомление (внутренний путь)
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt(sort: Desc)])
 }
 
 // ──────────────────────────────────────────────────────────────────────────

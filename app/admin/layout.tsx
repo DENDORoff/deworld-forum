@@ -2,8 +2,11 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import {
   ArrowLeft,
+  Bot,
+  Flag,
   FolderCog,
   LayoutDashboard,
+  LayoutList,
   MessagesSquare,
   ScrollText,
   Settings,
@@ -19,8 +22,11 @@ const NAV = [
   { href: "/admin", label: "Обзор", icon: LayoutDashboard },
   { href: "/admin/categories", label: "Разделы форума", icon: FolderCog },
   { href: "/admin/topics", label: "Темы", icon: MessagesSquare },
+  { href: "/admin/reports", label: "Жалобы", icon: Flag },
   { href: "/admin/users", label: "Пользователи", icon: Users },
   { href: "/admin/settings", label: "Настройки сайта", icon: Settings },
+  { href: "/admin/content", label: "Контент сайта", icon: LayoutList },
+  { href: "/admin/bots", label: "Боты для логов", icon: Bot },
   { href: "/admin/logs", label: "Логи", icon: ScrollText },
 ] as const;
 

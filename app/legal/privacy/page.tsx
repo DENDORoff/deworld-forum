@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { LegalPage, LegalSection } from "@/components/legal-page";
 import { DISCORD_INVITE, SITE_NAME } from "@/lib/constants";
+import { getOperatorRequisites } from "@/lib/site-content";
 
 export const metadata: Metadata = {
   title: "Политика конфиденциальности",
@@ -10,15 +11,17 @@ export const metadata: Metadata = {
   alternates: { canonical: "/legal/privacy" },
 };
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const operator = await getOperatorRequisites();
+
   return (
     <LegalPage title="Политика конфиденциальности" updated="19 ноября 2026">
       <LegalSection title="1. Оператор персональных данных">
         <p>
-          Оператором персональных данных является DENDOR — администратор проекта {SITE_NAME}{" "}
+          Оператором персональных данных является {operator.name} — администратор проекта {SITE_NAME}{" "}
           (далее — «Оператор»). Email для обращений:{" "}
-          <a className="text-orange-800 underline underline-offset-2" href="mailto:privacy@de-world.net">
-            privacy@de-world.net
+          <a className="text-orange-800 underline underline-offset-2" href={`mailto:${operator.emailPrivacy}`}>
+            {operator.emailPrivacy}
           </a>
           . Полные реквизиты указаны на{" "}
           <Link className="text-orange-800 underline underline-offset-2" href="/legal/requisites">
@@ -99,8 +102,8 @@ export default function PrivacyPage() {
         <ul className="list-disc space-y-1.5 pl-6">
           <li>
             <strong id="access-request">Доступ и копия данных:</strong> напишите на{" "}
-            <a className="text-orange-800 underline underline-offset-2" href="mailto:privacy@de-world.net">
-              privacy@de-world.net
+            <a className="text-orange-800 underline underline-offset-2" href={`mailto:${operator.emailPrivacy}`}>
+              {operator.emailPrivacy}
             </a>{" "}
             — вышлем выгрузку ваших данных в течение 30 дней.
           </li>
@@ -112,7 +115,7 @@ export default function PrivacyPage() {
             — профиль, посты и сообщения будут стёрты. Либо направьте запрос на тот же email — удаление выполняется в течение 30 дней.
           </li>
           <li>Исправление неточных данных — в настройках профиля самостоятельно, либо по запросу.</li>
-          <li>Отзыв согласия — через удаление аккаунта или письмо на privacy@de-world.net.</li>
+          <li>Отзыв согласия — через удаление аккаунта или письмом на {operator.emailPrivacy}.</li>
           <li>Жалоба в Роскомнадзор: rkn.gov.ru, если считаете, что ваши права нарушены.</li>
         </ul>
       </LegalSection>
@@ -122,8 +125,8 @@ export default function PrivacyPage() {
           Пароли — bcrypt (12 раундов). Сессии — httpOnly-cookie с SameSite=Lax и подписью JWT.
           Доступ к БД — только параметризованные запросы. Админ-раздел — по ролевой модели и
           журналируется. Сообщения об уязвимостях:{" "}
-          <a className="text-orange-800 underline underline-offset-2" href="mailto:security@de-world.net">
-            security@de-world.net
+          <a className="text-orange-800 underline underline-offset-2" href={`mailto:${operator.emailSecurity}`}>
+            {operator.emailSecurity}
           </a>
           .
         </p>
@@ -136,7 +139,7 @@ export default function PrivacyPage() {
           <Link className="text-orange-800 underline underline-offset-2" href="/legal/requisites">
             реквизитов
           </Link>
-          ). Если вы обнаружили неточность — сообщите на privacy@de-world.net.
+          ). Если вы обнаружили неточность — сообщите на {operator.emailPrivacy}.
         </p>
       </LegalSection>
 
