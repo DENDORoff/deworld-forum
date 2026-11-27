@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { KeyRound, ShieldCheck, Sword, UserRound, Trash2, UserCog } from "lucide-react";
+import { KeyRound, Link2, Palette, ShieldCheck, Sword, UserRound, Trash2, UserCog } from "lucide-react";
 import QRCode from "qrcode";
 
 import { getServerSession } from "@/lib/server-auth";
@@ -13,6 +13,8 @@ import { ProfileForm, UsernameForm, PasswordForm } from "@/components/settings/p
 import { TotpSection } from "@/components/settings/totp-section";
 import { MinecraftSection } from "@/components/settings/minecraft-section";
 import { DangerZone } from "@/components/settings/danger-zone";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { OAuthLinks } from "@/components/settings/oauth-links";
 
 export const metadata: Metadata = {
   title: "Настройки аккаунта",
@@ -25,6 +27,8 @@ const SECTIONS = [
   { id: "login", label: "Логин и пароль", icon: KeyRound },
   { id: "security", label: "Двухфакторная аутентификация", icon: ShieldCheck },
   { id: "minecraft", label: "Minecraft-аккаунт", icon: Sword },
+  { id: "oauth", label: "Соцсети", icon: Link2 },
+  { id: "appearance", label: "Тема оформления", icon: Palette },
   { id: "danger", label: "Опасная зона", icon: Trash2 },
 ] as const;
 
@@ -78,7 +82,7 @@ async function SettingsContent() {
 
       <div className="mt-8 grid gap-10 lg:grid-cols-12">
         {/* Якорная навигация */}
-        <nav aria-label="Разделы настроек" className="lg:col-span-3">
+        <nav aria-label="Разделы настроек" className="min-w-0 lg:col-span-3">
           <ul className="flex gap-2 overflow-x-auto pb-1 lg:sticky lg:top-20 lg:flex-col lg:overflow-visible">
             {SECTIONS.map((section) => (
               <li key={section.id} className="shrink-0">
@@ -101,7 +105,7 @@ async function SettingsContent() {
         </nav>
 
         {/* Секции */}
-        <div className="space-y-8 lg:col-span-9">
+        <div className="min-w-0 space-y-8 lg:col-span-9">
           <section id="profile" aria-labelledby="profile-heading" className="scroll-mt-24 rounded-2xl border border-orange-100 bg-white p-6 shadow-sm">
             <h2 id="profile-heading" className="font-display text-lg text-stone-900">
               Профиль
@@ -141,6 +145,17 @@ async function SettingsContent() {
             </div>
           </section>
 
+          <OAuthLinks />
+
+          <section id="appearance" aria-labelledby="appearance-heading" className="scroll-mt-24 rounded-2xl border border-orange-100 bg-white p-6 shadow-sm">
+            <h2 id="appearance-heading" className="font-display text-lg text-stone-900">
+              Тема оформления
+            </h2>
+            <div className="mt-4">
+              <ThemeToggle />
+            </div>
+          </section>
+
           <section id="danger" aria-labelledby="danger-heading" className="scroll-mt-24 rounded-2xl border border-red-200 bg-red-50/40 p-6">
             <h2 id="danger-heading" className="font-display text-lg text-red-900">
               Опасная зона
@@ -160,8 +175,8 @@ function SettingsSkeleton() {
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6" aria-hidden>
       <div className="skeleton h-8 w-56" />
       <div className="mt-6 grid gap-6 lg:grid-cols-12">
-        <div className="skeleton h-48 lg:col-span-3" />
-        <div className="space-y-4 lg:col-span-9">
+        <div className="skeleton h-48 min-w-0 lg:col-span-3" />
+        <div className="min-w-0 space-y-4 lg:col-span-9">
           <div className="skeleton h-44" />
           <div className="skeleton h-64" />
           <div className="skeleton h-44" />

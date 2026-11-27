@@ -34,7 +34,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
       <div className="grid gap-6 lg:grid-cols-12">
-        <aside className="lg:col-span-3 xl:col-span-2">
+        <aside className="min-w-0 lg:col-span-3 xl:col-span-2">
           <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm lg:sticky lg:top-20">
             <Link
               href="/"

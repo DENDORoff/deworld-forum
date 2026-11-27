@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { getSettingJson, setSetting } from "@/lib/settings";
+import { setSetting } from "@/lib/settings";
 import {
   BOT_EVENTS,
   DEFAULT_BOTS_CONFIG,
@@ -108,6 +108,7 @@ export async function updateBotsConfigAction(
 }
 
 export async function testBotsAction(_prev: BotsFormState): Promise<BotsFormState> {
+  void _prev;
   const ctx = await requireStaff();
   const result = await sendTestBotMessage();
   await auditBots(ctx.userId, "admin.bots_test", result);

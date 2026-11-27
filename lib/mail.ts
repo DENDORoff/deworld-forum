@@ -29,7 +29,10 @@ function buildTransporter(): Transporter | null {
 
   const url = process.env.SMTP_URL?.trim();
   if (url) {
-    transporter = nodemailer.createTransport(url, {
+    // В nodemailer 10 URL — это опция транспорта; таймауты тоже относятся
+    // к транспорту, а не к defaults отправляемого письма.
+    transporter = nodemailer.createTransport({
+      url,
       connectionTimeout: 5000,
       greetingTimeout: 5000,
       socketTimeout: 8000,

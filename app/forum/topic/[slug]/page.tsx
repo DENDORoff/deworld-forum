@@ -188,7 +188,7 @@ async function TopicContent({
 
       <div className="mt-5 grid gap-8 lg:grid-cols-12">
         {/* ── Тело темы ─────────────────────────────────────────────── */}
-        <div className="lg:col-span-9">
+        <div className="min-w-0 lg:col-span-9">
           <header className="border-b border-orange-100 pb-5">
             <div className="flex flex-wrap items-center gap-2 text-xs text-stone-500">
               {topic.pinned && (
@@ -377,7 +377,7 @@ async function TopicContent({
         </div>
 
         {/* ── Сайдбар ───────────────────────────────────────────────── */}
-        <aside className="lg:col-span-3">
+        <aside className="min-w-0 lg:col-span-3">
           <div className="sticky top-20 space-y-5">
             <div className="rounded-2xl border border-orange-100 bg-white p-5 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-wider text-stone-400">

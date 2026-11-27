@@ -84,7 +84,7 @@ export function BotsForm({ config }: { config: BotsConfig }) {
           Канал для вебхука: Сервер → Настройки → Интеграции → Вебхуки → Новый вебхук → Копировать URL.
         </p>
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
-          <div className="lg:col-span-2">
+          <div className="min-w-0 lg:col-span-2">
             <label htmlFor="discord_webhookUrl" className="text-sm font-semibold text-stone-800">
               Webhook URL <span className="font-normal text-stone-400">(сохранено: {DISCORD_LAST4(config.discord.webhookUrl)})</span>
             </label>
@@ -218,7 +218,7 @@ export function BotsForm({ config }: { config: BotsConfig }) {
               {p.token}
             </code>
           ))}
-          . В Discord: <code className="rounded bg-stone-100 px-1.5 py-0.5 text-[10px]">**жирный**</code>, ссылки — просто URL. В Telegram: <code className="rounded bg-stone-100 px-1.5 py-0.5 text-[10px]">&lt;b&gt;жирный&lt;/b&gt;</code>, <code className="rounded bg-stone-100 px-1.5 py-0.5 text-[10px]">&lt;a href="…"&gt;</code>.
+          . В Discord: <code className="rounded bg-stone-100 px-1.5 py-0.5 text-[10px]">**жирный**</code>, ссылки — просто URL. В Telegram: <code className="rounded bg-stone-100 px-1.5 py-0.5 text-[10px]">&lt;b&gt;жирный&lt;/b&gt;</code>, <code className="rounded bg-stone-100 px-1.5 py-0.5 text-[10px]">&lt;a href=&quot;…&quot;&gt;</code>.
         </p>
 
         <ul className="mt-4 space-y-4">
@@ -253,9 +253,9 @@ export function BotsForm({ config }: { config: BotsConfig }) {
                     maxLength={120}
                     placeholder="Заголовок сообщения"
                     aria-label="Заголовок события"
-                    className={cn(inputClass, "lg:col-span-8")}
+                    className={cn(inputClass, "min-w-0 lg:col-span-8")}
                   />
-                  <div className="flex items-center gap-2 lg:col-span-4">
+                  <div className="flex min-w-0 items-center gap-2 lg:col-span-4">
                     <label htmlFor={`event_${event}_color`} className="text-xs text-stone-500">Цвет</label>
                     <input
                       id={`event_${event}_color`}
@@ -272,7 +272,7 @@ export function BotsForm({ config }: { config: BotsConfig }) {
                     rows={2}
                     placeholder="Текст сообщения с плейсхолдерами…"
                     aria-label="Текст события"
-                    className={cn(inputClass, "lg:col-span-12")}
+                    className={cn(inputClass, "min-w-0 lg:col-span-12")}
                   />
                 </div>
                 {previewEnabled[event] && (

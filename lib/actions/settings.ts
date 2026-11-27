@@ -9,6 +9,7 @@ import { headers } from "next/headers";
 import { z } from "zod";
 
 import { auth } from "@/auth";
+import { isSkinAvatarUrl, minecraftSkinAvatarUrl } from "@/lib/avatar";
 import { prisma } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { passwordSchema, usernameSchema } from "@/lib/validations";
@@ -285,26 +286,88 @@ export async function linkMinecraftAction(
     return { status: "error", message: "Этот Minecraft-ник уже привязан к другому аккаунту." };
   }
 
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { image: true },
+  });
+  if (!user) return { status: "error", message: "Аккаунт не найден." };
+
+  // Свою картинку не затираем; скин-аватар (в т.ч. прошлый) обновляем.
+  const skinUrl = minecraftSkinAvatarUrl(result.realname);
+  const avatarUpdated = !!skinUrl && (!user.image || isSkinAvatarUrl(user.image));
+
   await prisma.user.update({
     where: { id: userId },
     data: {
       minecraftUsername: result.realname,
       limboAuthId: result.limboId,
+      ...(avatarUpdated ? { image: skinUrl } : {}),
     },
   });
-  await audit(userId, "settings.minecraft_link", { nickname: result.realname });
+  await audit(userId, "settings.minecraft_link", {
+    nickname: result.realname,
+    avatarUpdated,
+  });
   revalidatePath("/settings");
-  return { status: "success", message: `Minecraft-ник ${result.realname} привязан.` };
+  revalidatePath("/", "layout");
+  return {
+    status: "success",
+    message: `Minecraft-ник ${result.realname} привязан. ${avatarUpdated ? "Аватар — голова скина." : "Ваш аватар сохранён."}`,
+  };
 }
 
 export async function unlinkMinecraftAction(): Promise<void> {
   const userId = await requireUserId();
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { image: true },
+  });
+  const avatarCleared = !!user && isSkinAvatarUrl(user.image);
+
   await prisma.user.update({
     where: { id: userId },
-    data: { minecraftUsername: null, limboAuthId: null },
+    data: {
+      minecraftUsername: null,
+      limboAuthId: null,
+      ...(avatarCleared ? { image: null } : {}),
+    },
   });
-  await audit(userId, "settings.minecraft_unlink");
+  await audit(userId, "settings.minecraft_unlink", { avatarCleared });
   revalidatePath("/settings");
+  revalidatePath("/", "layout");
+}
+
+/** Повторно подставить голову скина в аватар (после смены скина). */
+export async function refreshMinecraftSkinAvatarAction(): Promise<SettingsFormState> {
+  const userId = await requireUserId();
+
+  const ip = await ipAddress();
+  const rl = rateLimit(`skin-avatar:${ip ?? userId}`, 10, 10 * 60 * 1000);
+  if (!rl.success) {
+    return { status: "error", message: "Слишком много обновлений. Подождите 10 минут." };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { minecraftUsername: true, image: true },
+  });
+  if (!user?.minecraftUsername) {
+    return { status: "error", message: "Сначала привяжите Minecraft-ник." };
+  }
+  if (user.image && !isSkinAvatarUrl(user.image)) {
+    return { status: "error", message: "У вас свой аватар — он не будет перезаписан." };
+  }
+
+  const skinUrl = minecraftSkinAvatarUrl(user.minecraftUsername);
+  if (!skinUrl) return { status: "error", message: "Не удалось создать аватар по скину." };
+
+  await prisma.user.update({ where: { id: userId }, data: { image: skinUrl } });
+  await audit(userId, "settings.minecraft_avatar_refresh", {
+    nickname: user.minecraftUsername,
+  });
+  revalidatePath("/settings");
+  revalidatePath("/", "layout");
+  return { status: "success", message: "Аватар обновлён по скину." };
 }
 
 // ── Удаление аккаунта (право на удаление данных, 152-ФЗ) ──────────────────

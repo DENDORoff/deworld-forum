@@ -75,6 +75,7 @@ model User {
   auditLogs         AuditLog[]
   chatMessages      ChatMessage[]
   notifications     Notification[]
+  visitors          Visitor[]
 
   @@index([role])
   @@index([createdAt])
@@ -466,6 +467,40 @@ model Setting {
   key       String   @id
   value     String   @db.Text
   updatedAt DateTime @updatedAt
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Статистика посетителей и онлайн (безличные данные, 152-ФЗ)
+// ──────────────────────────────────────────────────────────────────────────
+
+model Visitor {
+  id          String   @id @default(cuid())
+  /// Случайный идентификатор из httpOnly-cookie dw_vid (не IP, не email)
+  visitorId   String   @unique
+  userId      String?
+  /// Отображаемое имя для списка онлайна; у гостей — null
+  nickname    String?
+  firstSeen   DateTime @default(now())
+  lastSeen    DateTime @default(now())
+
+  user        User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  dailyVisits DailyVisit[]
+
+  @@index([lastSeen])
+  @@index([userId])
+}
+
+model DailyVisit {
+  id        String   @id @default(cuid())
+  /// Календарный день в UTC; вместе с visitorId даёт уникального посетителя дня
+  day       DateTime @db.Date
+  visitorId String
+  createdAt DateTime @default(now())
+
+  visitor Visitor @relation(fields: [visitorId], references: [visitorId], onDelete: Cascade)
+
+  @@unique([day, visitorId])
+  @@index([day])
 }
 
 model AuditLog {

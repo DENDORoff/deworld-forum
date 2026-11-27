@@ -5,10 +5,12 @@
   --font-display: var(--font-russo), var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
 
   /* Тёплая «оранжево-песочная» палитра поверх Tailwind orange/amber */
-  --color-cream: #fffaf2;
-  --color-sand: #fdf3e7;
-  --color-espresso: #201405;
-  --color-espresso-soft: #33200e;
+  --color-cream: #fbf6ee;
+  --color-sand: #f6ede1;
+  --color-espresso: #241a11;
+  --color-espresso-soft: #38291a;
+  /* Основные CTA: контраст с белым текстом не ниже 4.5:1 */
+  --color-orange-500: #c2410c;
 }
 
 html {
@@ -16,10 +18,192 @@ html {
 }
 
 body {
-  background-color: #ffffff;
-  color: #1c1917;
+  background-color: var(--color-white);
+  color: var(--color-stone-900);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Тёмная тема. Переопределяем токены Tailwind, поэтому все существующие
+ * утилиты (bg-white, text-stone-900, border-orange-100 …) меняются вместе
+ * с палитрой. Значения подобраны без чистого чёрного и с приглушённой
+ * насыщенностью, чтобы долгое использование не утомляло глаза.
+ */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-cream: #211f24;
+  --color-sand: #2a2623;
+  --color-espresso: #241a11;
+  --color-espresso-soft: #38291a;
+
+  --color-white: #19181d;
+  --color-stone-50: #201f24;
+  --color-stone-100: #27252b;
+  --color-stone-200: #343139;
+  --color-stone-300: #443f49;
+  --color-stone-400: #928c98;
+  --color-stone-500: #aaa4af;
+  --color-stone-600: #c0bac5;
+  --color-stone-700: #d3ced8;
+  --color-stone-800: #e4dfe7;
+  --color-stone-900: #f3eff4;
+  --color-stone-950: #fbf8fc;
+
+  --color-orange-50: #2b211e;
+  --color-orange-100: #38291f;
+  --color-orange-200: #4d3626;
+  --color-orange-300: #735137;
+  --color-orange-400: #cf9163;
+  --color-orange-500: #a85426;
+  --color-orange-600: #d99a6b;
+  --color-orange-700: #e8b890;
+  --color-orange-800: #f3d3b3;
+  --color-orange-900: #fae6cf;
+  --color-orange-950: #fff4e6;
+
+  --color-amber-50: #2d2519;
+  --color-amber-100: #3b2f1c;
+  --color-amber-200: #524124;
+  --color-amber-300: #8b6d33;
+  --color-amber-400: #d3ab67;
+  --color-amber-500: #d3a25c;
+  --color-amber-600: #e3b775;
+  --color-amber-700: #eecb9a;
+  --color-amber-800: #f6ddba;
+  --color-amber-900: #fbebd2;
+
+  --color-red-50: #2d1d20;
+  --color-red-100: #3c2428;
+  --color-red-200: #5a2f34;
+  --color-red-300: #93474c;
+  --color-red-400: #e07b7f;
+  --color-red-500: #d86a6e;
+  --color-red-600: #c62d31;
+  --color-red-700: #f2abae;
+  --color-red-800: #f8cbcd;
+  --color-red-900: #fde7e8;
+
+  --color-emerald-50: #172823;
+  --color-emerald-100: #1d392f;
+  --color-emerald-200: #285743;
+  --color-emerald-300: #3c8664;
+  --color-emerald-400: #6cc39a;
+  --color-emerald-500: #59b98f;
+  --color-emerald-600: #7ccfa8;
+  --color-emerald-700: #a3ddc0;
+  --color-emerald-800: #c8ecd8;
+  --color-emerald-900: #e6f7ee;
+
+  --color-sky-50: #1a252f;
+  --color-sky-100: #21394a;
+  --color-sky-200: #2c536b;
+  --color-sky-300: #4b84a6;
+  --color-sky-400: #7fb6d4;
+  --color-sky-500: #74a9c8;
+  --color-sky-600: #96c2dc;
+  --color-sky-700: #b9d8e9;
+  --color-sky-800: #d8ebf5;
+
+  --color-violet-50: #222030;
+  --color-violet-100: #302c45;
+  --color-violet-200: #453e66;
+  --color-violet-300: #6d5f9e;
+  --color-violet-400: #a693d3;
+  --color-violet-500: #9a86cb;
+  --color-violet-600: #b6a4dd;
+  --color-violet-700: #d0c4ea;
+  --color-violet-800: #e6ddf4;
+}
+
+/* Белый остаётся белым только там, где это реально белый цвет / обводка. */
+[data-theme="dark"] .text-white { color: #fbf8f4; }
+[data-theme="dark"] .border-white { border-color: rgba(251, 248, 244, 0.24); }
+[data-theme="dark"] .ring-white { --tw-ring-color: rgba(251, 248, 244, 0.24); }
+[data-theme="dark"] .bg-white\/5 { background-color: rgba(251, 248, 244, 0.05); }
+[data-theme="dark"] .bg-white\/10 { background-color: rgba(251, 248, 244, 0.1); }
+[data-theme="dark"] .bg-white\/15 { background-color: rgba(251, 248, 244, 0.15); }
+[data-theme="dark"] .bg-white\/20 { background-color: rgba(251, 248, 244, 0.2); }
+[data-theme="dark"] .bg-white\/40 { background-color: rgba(251, 248, 244, 0.4); }
+
+/*
+ * Блоки с собственным тёмным фоном (футер, сервер, финальный CTA):
+ * текст и обводки должны оставаться светлыми и в тёмной теме.
+ */
+[data-theme="dark"] .on-dark {
+  --color-stone-300: #b5aebb;
+  --color-stone-400: #c2bbc7;
+  --color-stone-500: #d0cad4;
+  --color-stone-600: #ddd8e0;
+  --color-orange-100: #f3ddc6;
+  --color-orange-200: #e7c39d;
+  --color-orange-300: #dfae83;
+  --color-amber-50: #f8f1e6;
+  --color-amber-100: #f4e7d1;
+  --color-amber-200: #ead3ad;
+  --color-amber-300: #dfb87c;
+  --color-amber-400: #d9ac6c;
+}
+
+/*
+ * Блоки с собственным светлым фоном в тёмной теме: полностью возвращаем
+ * светлую палитру, иначе тёмный текст становится нечитаемым.
+ */
+[data-theme="dark"] .on-light {
+  color-scheme: light;
+  --color-white: #fffaf2;
+  --color-stone-50: #fafaf9;
+  --color-stone-100: #f5f5f4;
+  --color-stone-200: #e7e5e4;
+  --color-stone-300: #d6d3d1;
+  --color-stone-400: #a8a29e;
+  --color-stone-500: #78716c;
+  --color-stone-600: #57534e;
+  --color-stone-700: #44403c;
+  --color-stone-800: #292524;
+  --color-stone-900: #1c1917;
+  --color-stone-950: #0c0a09;
+  --color-orange-50: #fff7ed;
+  --color-orange-100: #ffedd5;
+  --color-orange-200: #fed7aa;
+  --color-orange-300: #fdba74;
+  --color-orange-400: #fb923c;
+  --color-orange-500: #c2410c;
+  --color-orange-600: #ea580c;
+  --color-orange-700: #9a3412;
+  --color-orange-800: #7c2d12;
+  --color-orange-900: #431407;
+  --color-amber-50: #fffbeb;
+  --color-amber-100: #fef3c7;
+  --color-amber-200: #fde68a;
+  --color-amber-300: #fcd34d;
+  --color-amber-400: #fbbf24;
+  --color-amber-500: #d97706;
+  --color-amber-600: #b45309;
+  --color-amber-700: #92400e;
+  --color-amber-800: #78350f;
+  --color-amber-900: #451a03;
+  --color-red-50: #fef2f2;
+  --color-red-100: #fee2e2;
+  --color-red-200: #fecaca;
+  --color-red-300: #fca5a5;
+  --color-red-400: #f87171;
+  --color-red-500: #ef4444;
+  --color-red-600: #dc2626;
+  --color-red-700: #b91c1c;
+  --color-red-800: #991b1b;
+  --color-red-900: #7f1d1d;
+  --color-emerald-50: #ecfdf5;
+  --color-emerald-100: #d1fae5;
+  --color-emerald-200: #a7f3d0;
+  --color-emerald-300: #6ee7b7;
+  --color-emerald-400: #34d399;
+  --color-emerald-500: #10b981;
+  --color-emerald-600: #059669;
+  --color-emerald-700: #047857;
+  --color-emerald-800: #065f46;
+  --color-emerald-900: #064e3b;
 }
 
 /* Точки как фоновый паттерн для hero — создают глубину без картинок */
@@ -33,7 +217,7 @@ body {
   background-size: 22px 22px;
 }
 
-/* Фокус для клавиатурной навигации: чёткое оранжевое кольцо */
+/* Фокус для клавиатурной навигации: чёткое кольцо */
 .focus-ring {
   outline: none;
 }
@@ -53,6 +237,9 @@ body {
   background-size: 200% 100%;
   animation: dw-shimmer 1.4s ease-in-out infinite;
   border-radius: 0.5rem;
+}
+[data-theme="dark"] .skeleton {
+  background: linear-gradient(100deg, #27252b 20%, #343139 40%, #27252b 60%);
 }
 
 @media (prefers-reduced-motion: reduce) {

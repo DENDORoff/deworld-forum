@@ -24,6 +24,8 @@ import { DiscordCard } from "@/components/discord-card";
 import { YouTubeCarousel } from "@/components/youtube-carousel";
 import { FaqAccordion } from "@/components/faq-accordion";
 import { timeAgo, plural } from "@/lib/utils";
+import { getSiteStats } from "@/lib/stats";
+import { SiteStatsPanel } from "@/components/site-stats";
 
 export async function LandingContent() {
   const [
@@ -34,6 +36,7 @@ export async function LandingContent() {
     announcement,
     premiumPerks,
     premiumPriceLabel,
+    stats,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.topic.count(),
@@ -53,6 +56,7 @@ export async function LandingContent() {
     getSetting("site_announcement"),
     getSettingJson<string[]>("premium_perks", []),
     getSetting("premium_price_label"),
+    getSiteStats(),
   ]);
 
   return (
@@ -79,11 +83,11 @@ export async function LandingContent() {
       <section className="relative overflow-hidden bg-gradient-to-b from-orange-50/80 via-white to-white">
         <div className="dot-grid pointer-events-none absolute inset-0 opacity-60" aria-hidden />
         <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-14 sm:px-6 lg:grid-cols-12 lg:py-20">
-          <div className="lg:col-span-6">
+          <div className="min-w-0 lg:col-span-6">
             <p className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-white/80 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-orange-700 shadow-sm">
               <Sparkles size={13} aria-hidden /> Сообщество Minecraft
             </p>
-            <h1 className="mt-5 font-display text-4xl leading-[1.08] text-stone-900 sm:text-5xl xl:text-6xl">
+            <h1 className="mt-5 font-display text-3xl leading-[1.12] text-stone-900 sm:text-4xl xl:text-5xl">
               Всё ещё Minecraft,{" "}
               <span className="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 bg-clip-text text-transparent">
                 просто лучше.
@@ -117,7 +121,7 @@ export async function LandingContent() {
             </p>
           </div>
 
-          <div className="lg:col-span-6">
+          <div className="min-w-0 lg:col-span-6">
             <div className="relative mx-auto max-w-md lg:max-w-none">
               <div
                 aria-hidden
@@ -131,7 +135,7 @@ export async function LandingContent() {
                 priority
                 className="aspect-square w-full rounded-3xl object-cover shadow-2xl shadow-orange-900/20 ring-1 ring-orange-200/60"
               />
-              <div className="absolute bottom-4 left-4 inline-flex items-center gap-2 rounded-xl bg-black/70 px-4 py-2 text-sm font-semibold text-amber-300 ring-1 ring-white/20 backdrop-blur">
+              <div className="absolute bottom-4 left-4 inline-flex items-center gap-2 on-dark rounded-xl bg-stone-950/80 px-4 py-2 text-sm font-semibold text-amber-300 ring-1 ring-white/20 backdrop-blur">
                 <span className="relative flex h-2.5 w-2.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
@@ -147,7 +151,7 @@ export async function LandingContent() {
       <section
         id="server"
         aria-labelledby="server-heading"
-        className="bg-[#201405] py-16 sm:py-20"
+        className="on-dark bg-espresso py-16 sm:py-20"
       >
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="flex flex-wrap items-end justify-between gap-4">
@@ -166,27 +170,16 @@ export async function LandingContent() {
           </div>
 
           <div className="mt-8 grid gap-6 lg:grid-cols-12">
-            <div className="lg:col-span-7">
+            <div className="min-w-0 lg:col-span-7">
               <ServerStatusCard />
-              <dl className="mt-6 grid grid-cols-3 gap-4 text-center">
-                {[
-                  { value: members, label: "участников" },
-                  { value: topicCount, label: "тем на форуме" },
-                  { value: postCount, label: "сообщений" },
-                ].map((stat) => (
-                  <div
-                    key={stat.label}
-                    className="rounded-2xl bg-white/5 py-4 ring-1 ring-white/5"
-                  >
-                    <dt className="order-2 mt-1 text-[11px] uppercase tracking-wide text-orange-100/55">
-                      {stat.label}
-                    </dt>
-                    <dd className="font-display text-2xl text-amber-100">{stat.value}</dd>
-                  </div>
-                ))}
-              </dl>
+              <div className="mt-6">
+                <SiteStatsPanel initial={stats} tone="dark" />
+              </div>
+              <p className="mt-3 text-center text-xs text-orange-100/60">
+                {members} участников · {topicCount} тем · {postCount} сообщений на форуме
+              </p>
             </div>
-            <div className="lg:col-span-5">
+            <div className="min-w-0 lg:col-span-5">
               <DiscordCard />
             </div>
           </div>
@@ -256,10 +249,10 @@ export async function LandingContent() {
       {/* ── Премиум-подписка ─────────────────────────────────────────── */}
       <section
         aria-labelledby="premium-heading"
-        className="border-y border-orange-100 bg-[#FFF7EC] py-16 sm:py-20"
+        className="on-light border-y border-orange-100 bg-[#FFF7EC] py-16 sm:py-20"
       >
         <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-12">
-          <div className="lg:col-span-7">
+          <div className="min-w-0 lg:col-span-7">
             <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
               <Crown size={14} aria-hidden /> Премиум
             </p>
@@ -299,7 +292,7 @@ export async function LandingContent() {
               .
             </p>
           </div>
-          <div className="lg:col-span-5">
+          <div className="min-w-0 lg:col-span-5">
             <div className="rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-100 via-orange-100 to-amber-50 p-7 text-center shadow-sm">
               <Crown size={44} className="mx-auto text-amber-500" strokeWidth={1.5} aria-hidden />
               <p className="mt-4 font-display text-xl text-stone-900">Премиум DEWORLD</p>
@@ -309,7 +302,7 @@ export async function LandingContent() {
               </p>
               <Link
                 href="/premium"
-                className="focus-ring mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-stone-900 px-5 py-3 font-semibold text-amber-300 transition-colors hover:bg-stone-800"
+                className="on-dark focus-ring mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-stone-950 px-5 py-3 font-semibold text-amber-300 transition-colors hover:bg-stone-800"
               >
                 Оформить подписку
                 <ArrowRight size={17} aria-hidden />
@@ -408,7 +401,7 @@ export async function LandingContent() {
       {/* ── FAQ ──────────────────────────────────────────────────────── */}
       <section aria-labelledby="faq-heading" className="pb-16 sm:pb-24">
         <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-12">
-          <div className="lg:col-span-4">
+          <div className="min-w-0 lg:col-span-4">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-orange-600">
               Частые вопросы
             </p>
@@ -433,17 +426,17 @@ export async function LandingContent() {
               .
             </p>
           </div>
-          <div className="lg:col-span-8">
+          <div className="min-w-0 lg:col-span-8">
             <FaqAccordion />
           </div>
         </div>
       </section>
 
       {/* ── Финальный CTA ────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 py-14 text-center">
+      <section className="on-dark relative overflow-hidden bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 py-14 text-center">
         <div className="dot-grid-dark pointer-events-none absolute inset-0" aria-hidden />
         <div className="relative mx-auto max-w-3xl px-4">
-          <h2 className="font-display text-3xl leading-tight text-white sm:text-4xl">
+          <h2 className="font-display text-2xl leading-tight text-white sm:text-3xl">
             Готов зайти?
           </h2>
           <p className="mt-3 text-lg text-orange-50">

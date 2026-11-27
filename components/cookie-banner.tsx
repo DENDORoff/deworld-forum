@@ -61,6 +61,7 @@ export function CookieBanner() {
     }
     setVisible(false);
     setSettingsOpen(false);
+    window.dispatchEvent(new Event("dw:cookie-consent"));
   }, []);
 
   if (!visible) return null;

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Bell, CheckCheck, MessageSquarePlus, AtSign, CheckCircle2, Flag, Info } from "lucide-react";
 
 import { markAllNotificationsReadAction } from "@/lib/actions/notifications";
-import { cn } from "@/lib/utils";
 import { timeAgo } from "@/lib/utils";
 
 export interface BellItem {

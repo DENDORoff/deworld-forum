@@ -4,12 +4,16 @@ import { useEffect, useState } from "react";
 import { Activity, RefreshCw, Server, Users, Wifi } from "lucide-react";
 
 interface ServerStatus {
+  host?: string;
+  port?: number;
   online: boolean;
   latencyMs: number | null;
   version: string | null;
   playersOnline: number | null;
   playersMax: number | null;
   motd: string | null;
+  /** Причина офлайна от API — без внутренних деталей. */
+  error?: string | null;
 }
 
 type LoadState = "loading" | "ready" | "error";
@@ -114,8 +118,12 @@ export function ServerStatusCard() {
         <div className="mt-3 rounded-xl bg-black/35 px-4 py-3 ring-1 ring-white/5">
           <MotdLines motd={status.motd} />
         </div>
-      ) : (
+      ) : online ? (
         <p className="mt-3 text-sm text-orange-100/60">MOTD недоступен</p>
+      ) : (
+        <p role="status" className="mt-3 rounded-xl bg-red-400/10 px-3 py-2 text-sm text-red-100/90">
+          {status?.error || "Сервер не отвечает. Попробуйте обновить статус позже."}
+        </p>
       )}
 
       <dl className="mt-4 grid grid-cols-3 gap-3 text-amber-50">
@@ -147,8 +155,12 @@ export function ServerStatusCard() {
         </div>
       </dl>
 
-      <p className="mt-3 flex items-center gap-1.5 text-[11px] text-orange-100/45">
-        <Activity size={11} aria-hidden /> Обновляется автоматически раз в минуту
+      <p className="mt-3 flex flex-wrap items-center gap-1.5 text-[11px] text-orange-100/70">
+        <Activity size={11} aria-hidden />
+        {status?.host
+          ? `${status.host}${status.port ? `:${status.port}` : ""} · `
+          : ""}
+        обновляется автоматически раз в минуту
       </p>
     </div>
   );

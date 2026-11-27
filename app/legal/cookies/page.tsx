@@ -46,6 +46,11 @@ export default function CookiesPage() {
                 <td className="py-2.5">12 месяцев</td>
               </tr>
               <tr>
+                <td className="py-2.5 pr-4 font-mono text-xs">dw_vid</td>
+                <td className="py-2.5 pr-4">Анонимный идентификатор для статистики онлайна и уникальных посетителей дня (httpOnly, SameSite=Lax). Не содержит IP, email или имени; ставится только после согласия на аналитические Cookie</td>
+                <td className="py-2.5">12 месяцев</td>
+              </tr>
+              <tr>
                 <td className="py-2.5 pr-4 font-mono text-xs">__Secure-authjs.session-token</td>
                 <td className="py-2.5 pr-4">То же в production (Secure)</td>
                 <td className="py-2.5">30 дней</td>

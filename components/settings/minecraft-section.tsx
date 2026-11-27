@@ -1,16 +1,34 @@
 "use client";
 
 import { useActionState } from "react";
-import { Link2, Link2Off, Loader2, Sword } from "lucide-react";
+import { Link2, Link2Off, Loader2, RefreshCw, Sword } from "lucide-react";
 
 import {
   linkMinecraftAction,
+  refreshMinecraftSkinAvatarAction,
   unlinkMinecraftAction,
   type SettingsFormState,
 } from "@/lib/actions/settings";
 import { cn } from "@/lib/utils";
 
 const initialState: SettingsFormState = { status: "idle" };
+
+function StatusMessage({ state }: { state: SettingsFormState }) {
+  if (state.status === "idle" || !state.message) return null;
+  return (
+    <p
+      role={state.status === "error" ? "alert" : "status"}
+      className={cn(
+        "rounded-xl border px-4 py-2.5 text-sm",
+        state.status === "success"
+          ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+          : "border-red-200 bg-red-50 text-red-800",
+      )}
+    >
+      {state.message}
+    </p>
+  );
+}
 
 export function MinecraftSection({
   enabled,
@@ -19,7 +37,14 @@ export function MinecraftSection({
   enabled: boolean;
   minecraftUsername: string | null;
 }) {
-  const [state, formAction, isPending] = useActionState(linkMinecraftAction, initialState);
+  const [linkState, linkFormAction, isLinkPending] = useActionState(
+    linkMinecraftAction,
+    initialState,
+  );
+  const [avatarState, avatarFormAction, isAvatarPending] = useActionState(
+    refreshMinecraftSkinAvatarAction,
+    initialState,
+  );
 
   if (minecraftUsername) {
     return (
@@ -30,17 +55,37 @@ export function MinecraftSection({
         </p>
         <p className="mt-1.5 text-sm text-stone-600">
           По этому нику вы можете входить на форум паролем LimboAuth; статистика и достижения
-          привязываются к нику.
+          привязываются к нику. Аватар автоматически станет головой вашего скина, если не задано
+          собственное изображение.
         </p>
-        <form action={unlinkMinecraftAction} className="mt-4">
-          <button
-            type="submit"
-            className="focus-ring inline-flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-5 py-2.5 text-sm font-semibold text-stone-700 transition-colors hover:border-red-300 hover:text-red-700"
-          >
-            <Link2Off size={16} aria-hidden />
-            Отвязать ник
-          </button>
-        </form>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <form action={avatarFormAction}>
+            <button
+              type="submit"
+              disabled={isAvatarPending}
+              className="focus-ring inline-flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-2.5 text-sm font-semibold text-amber-300 transition-colors hover:bg-stone-800 disabled:opacity-60"
+            >
+              {isAvatarPending ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <RefreshCw size={16} />
+              )}
+              Обновить аватар по скину
+            </button>
+          </form>
+          <form action={unlinkMinecraftAction}>
+            <button
+              type="submit"
+              className="focus-ring inline-flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-5 py-2.5 text-sm font-semibold text-stone-700 transition-colors hover:border-red-300 hover:text-red-700"
+            >
+              <Link2Off size={16} aria-hidden />
+              Отвязать ник
+            </button>
+          </form>
+        </div>
+        <div className="mt-3">
+          <StatusMessage state={avatarState} />
+        </div>
       </div>
     );
   }
@@ -55,10 +100,11 @@ export function MinecraftSection({
   }
 
   return (
-    <form action={formAction} className="space-y-3">
+    <form action={linkFormAction} className="space-y-3">
       <p className="text-sm text-stone-600">
         Введите ник и пароль от LimboAuth — те же, что при входе на сервер. Пароль не
-        сохраняется, сверяется только хэш.
+        сохраняется, сверяется только хэш. После привязки аватар автоматически станет головой
+        скина, если у вас нет собственного изображения.
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
         <input
@@ -78,25 +124,13 @@ export function MinecraftSection({
           className="focus-ring rounded-xl border border-stone-200 px-4 py-2.5 text-base placeholder:text-stone-400"
         />
       </div>
-      {state.status !== "idle" && state.message && (
-        <p
-          role="alert"
-          className={cn(
-            "rounded-xl border px-4 py-2.5 text-sm",
-            state.status === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-              : "border-red-200 bg-red-50 text-red-800",
-          )}
-        >
-          {state.message}
-        </p>
-      )}
+      <StatusMessage state={linkState} />
       <button
         type="submit"
-        disabled={isPending}
+        disabled={isLinkPending}
         className="focus-ring inline-flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-2.5 text-sm font-semibold text-amber-300 transition-colors hover:bg-stone-800 disabled:opacity-60"
       >
-        {isPending ? <Loader2 size={16} className="animate-spin" /> : <Link2 size={16} />}
+        {isLinkPending ? <Loader2 size={16} className="animate-spin" /> : <Link2 size={16} />}
         Привязать аккаунт
       </button>
     </form>

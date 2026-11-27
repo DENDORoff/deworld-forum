@@ -30,7 +30,7 @@ function StatusMessage({ state }: { state: AdminFormState }) {
 }
 
 const inputClass =
-  "focus-ring w-full rounded-lg border border-stone-200 px-3 py-2 text-sm placeholder:text-stone-400";
+  "focus-ring w-full min-w-0 rounded-lg border border-stone-200 px-3 py-2 text-sm placeholder:text-stone-400";
 
 export interface CategoryRowData {
   id: string;

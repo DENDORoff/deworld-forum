@@ -4,7 +4,7 @@
  */
 "use server";
 
-import { AuthError, signIn } from "@/auth";
+import { AuthError, configuredOAuthProviders, signIn } from "@/auth";
 import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
 import { registerSchema } from "@/lib/validations";
@@ -24,9 +24,9 @@ export interface AuthFormState {
 
 const IDLE: AuthFormState = { status: "idle" };
 
-function safeCallbackUrl(raw: FormDataEntryValue | null): string {
+function safeCallbackUrl(raw: FormDataEntryValue | null | string | undefined): string {
   if (typeof raw !== "string") return "/forum";
-  if (!raw.startsWith("/") || raw.startsWith("//")) return "/forum";
+  if (!raw.startsWith("/") || raw.startsWith("//") || /[\\\r\n]/.test(raw)) return "/forum";
   return raw.slice(0, 256);
 }
 
@@ -39,8 +39,11 @@ export async function oauthSignInAction(
   provider: string,
   callbackUrl = "/forum",
 ): Promise<void> {
-  const safe = callbackUrl.startsWith("/") && !callbackUrl.startsWith("//") ? callbackUrl.slice(0, 256) : "/forum";
-  await signIn(provider, { redirectTo: safe });
+  // Провайдер извне недостоверен: разрешаем только настроенные сервисы.
+  if (!configuredOAuthProviders().some((item) => item.id === provider)) {
+    throw new Error("OAUTH_PROVIDER_UNAVAILABLE");
+  }
+  await signIn(provider, { redirectTo: safeCallbackUrl(callbackUrl) });
 }
 
 export async function signInAction(

@@ -10,9 +10,11 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteHeaderSkeleton } from "@/components/site-header-skeleton";
 import { SiteFooter } from "@/components/site-footer";
 import { CookieBanner } from "@/components/cookie-banner";
+import { PresenceTracker } from "@/components/presence-tracker";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { absoluteUrl, siteUrl } from "@/lib/utils";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE } from "@/lib/constants";
+import { themeInitScript } from "@/lib/theme";
 
 const rubik = Rubik({
   variable: "--font-rubik",
@@ -93,15 +95,18 @@ export default function RootLayout({
   return (
     <html
       lang="ru"
+      suppressHydrationWarning
       className={`${rubik.variable} ${russoOne.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-white font-sans text-stone-900">
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <Suspense fallback={<SiteHeaderSkeleton />}>
           <SiteHeader />
         </Suspense>
         <main className="flex-1">{children}</main>
         <SiteFooter />
         <CookieBanner />
+        <PresenceTracker />
         <ConfirmDialog />
         <Script
           id="website-jsonld"

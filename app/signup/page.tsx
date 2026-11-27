@@ -29,7 +29,7 @@ async function SignUpContent() {
 
   return (
     <section className="mx-auto grid max-w-6xl gap-0 px-4 py-10 sm:px-6 lg:grid-cols-12 lg:py-16">
-      <div className="lg:col-span-5">
+      <div className="min-w-0 lg:col-span-5">
         <Logo />
         <h1 className="mt-6 font-display text-3xl leading-tight text-stone-900">
           Присоединяйтесь к DEWORLD
@@ -52,7 +52,7 @@ async function SignUpContent() {
         </p>
       </div>
 
-      <div className="mt-8 lg:col-span-6 lg:col-start-7 lg:mt-0">
+      <div className="mt-8 min-w-0 lg:col-span-6 lg:col-start-7 lg:mt-0">
         <div className="rounded-2xl border border-orange-100 bg-white p-6 shadow-lg shadow-orange-100/40 sm:p-8">
           <SignUpForm />
           <div className="mt-6">
@@ -68,7 +68,7 @@ function AuthSkeleton() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6" aria-hidden>
       <div className="grid gap-8 lg:grid-cols-12">
-        <div className="lg:col-span-5">
+        <div className="min-w-0 lg:col-span-5">
           <div className="skeleton h-10 w-40" />
           <div className="skeleton mt-6 h-12 w-4/5" />
           <div className="skeleton mt-2 h-12 w-3/5" />

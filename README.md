@@ -10,7 +10,7 @@ Minecraft по LimboAuth), 2FA, роли, премиум-подписка, ад�
 ## Стек
 
 - **Next.js 16** (App Router, Cache Components / Partial Prerendering) + **React 19** + **TypeScript**
-- **Tailwind CSS v4**, шрифты Rubik и Russo One (загружаются с нашего сервера)
+- **Tailwind CSS v4** (`@tailwindcss/postcss` в `postcss.config.mjs` — обязателен и для webpack-сборки, и для Turbopack), шрифты Rubik и Russo One (загружаются с нашего сервера)
 - **Prisma 7** (драйвер-адаптер `@prisma/adapter-pg`, генератор `prisma-client`) + **PostgreSQL**
   - production: **[Neon](https://neon.tech)** (serverless Postgres)
   - локальная разработка: любой PostgreSQL (в проекте использовался PostgreSQL 17)
@@ -28,7 +28,8 @@ Minecraft по LimboAuth), 2FA, роли, премиум-подписка, ад�
 - Hero с воксельной графикой DEWORLD и CTA
 - Живой статус сервера по Server List Ping (MOTD, онлайн, версия, пинг) — `/api/server-status`, кэш 45 с
 - Статистика сообщества (участники, темы, сообщения) из БД
-- Карточка Discord-сервера (онлайн через виджет-API, прокси `/api/discord-widget`, кэш 5 мин)
+- **Живая статистика**: текущий онлайн, пользователи онлайн, уникальные посетители суток (включая неавторизованных), всего посетителей и список никнеймов (лимит 12). Данные приходят с `/api/presence`, обновляются heartbeat раз в минуту; анонимный `dw_vid` ставится только после согласия на аналитические Cookie
+- Карточка Discord-сервера с официальным Server Widget (iframe `discord.com/widget`, тема light/dark); ID из env или из публичного invite-эндпоинта через `/api/discord-widget`, кэш 6 ч; без ID — аккуратный fallback с CTA
 - Карусель видео YouTube-канала (через RSS, без API-ключей — `/api/youtube`, кэш 30 мин)
 - FAQ-аккордеон, анонс из админки, SEO (OG, JSON-LD, sitemap.xml, robots.txt, manifest)
 
@@ -43,8 +44,13 @@ Minecraft по LimboAuth), 2FA, роли, премиум-подписка, ад�
 - Регистрация/вход по email+паролю (bcrypt), OAuth: Google / GitHub / Discord / VK (env-gated)
 - Вход ником Minecraft по паролю LimboAuth (сверка по БД LimboAuth; опционально, `LIMBOAUTH_DATABASE_URL`)
 - **2FA (TOTP)**: подключение по QR-коду, код запрашивается при входе
-- Привязка любых провайдеров к одному аккаунту; привязка Minecraft-ника в настройках
+- Привязка соцсетей в `/settings`: кнопки «Привязать/Отвязать», статус и защита от отвязки последнего способа входа. Привязка возможна только из авторизованной сессии по подписанному намерению; email провайдера никогда не связывает аккаунты автоматически. Привязка Minecraft-ника — в отдельном разделе настроек
+- Аватар по скину: после привязки ника аватар автоматически становится головой скина
+  ([mc-heads.net](https://mc-heads.net), без API-ключей); если задано своё изображение — оно сохраняется.
+  Кнопка «Обновить аватар по скину» обновляет голову после смены скина; при недоступности картинки
+  показываются инициалы. Отвязка ника удаляет только скин-аватар.
 - Восстановление пароля по email-токену (1 час, письма только при настроенном SMTP)
+- **Тема оформления** в `/settings`: системная / светлая / тёмная. Палитры разделены на уровне CSS-токенов Tailwind; выбор хранится в localStorage и применяется до первой отрисовки
 - Роли: `USER` < `MODERATOR` < `ADMIN`; премиум-флаг `premiumUntil`
 - **Cloudflare Turnstile** на регистрации/входе/восстановлении (тестовые ключи в коде; для production задайте `NEXT_PUBLIC_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY`)
 
@@ -106,7 +112,7 @@ npm start
 
 Что сделано:
 1. Neon: проект создан в регионе Europe Central 1 (Frankfurt), `neon init`, `neon env pull` → `DATABASE_URL`/`DATABASE_URL_UNPOOLED`.
-2. Применены обе миграции (`20261119000000_init`, `20261119194649_notifications`), выполнен seed (разделы, достижения, настройки, администратор).
+2. Применены миграции (`20261119000000_init`, `20261119194649_notifications`, `20261127211828_visitor_stats`), выполнен seed (разделы, достижения, настройки, администратор).
 3. Vercel: проект `deworld-forum`, env-переменные залиты через CLI, production задеплоен, алиас `deworld-forum.vercel.app`. Production открыт публично; превью-деплои закрыты Vercel Authentication.
 4. **Домен `de-world.net` добавлен в проект, но ждёт DNS**: на DNS-провайдере пропишите записи (ниже) и дождитесь верификации — Vercel сам выпустит SSL.
 5. ⚠️ **Инициализация БД**: для production БД сид выполнен. Продовый пароль администратора — `bYaayt3JunNC`, **смените его сразу** в `/settings` → «Логин и пароль».
@@ -147,15 +153,26 @@ npx vercel deploy --prod --yes --token <token>
 | `AUTH_VK_ID` / `AUTH_VK_SECRET` | вход через ВКонтакте (oauth.vk.com) | опционально |
 | `LIMBOAUTH_DATABASE_URL` | отдельный пул к БД LimboAuth (вход по нику/паролю) | опционально |
 | `LIMBOAUTH_TABLE` / `..._USERNAME_COLUMN` / `..._PASSWORD_COLUMN` / `..._ID_COLUMN` | имена таблицы/колонок LimboAuth (по умолчанию `limboauth`, `name`, `password`, `id`) | опционально |
-| `MINECRAFT_SERVER_HOST` / `MINECRAFT_SERVER_PORT` | виджет статуса сервера | по умолчанию mc.de-world.net:25565 |
-| `NEXT_PUBLIC_DISCORD_INVITE` | ссылка-инвайт в Discord | ✓ (иначе показывается заглушка) |
-| `NEXT_PUBLIC_DISCORD_GUILD_ID` | ID сервера для живого счётчика онлайна | опционально |
-| `NEXT_PUBLIC_YOUTUBE_CHANNEL_ID` | ID канала для карусели видео (RSS) | опционально |
+| `MINECRAFT_HOST` / `MINECRAFT_PORT` (или `MINECRAFT_SERVER_HOST` / `MINECRAFT_SERVER_PORT`) | виджет статуса; поддерживается формат `host:port` | по умолчанию `mc.de-world.net:30077` (порт из SRV; 25565 не работает) |
+| `NEXT_PUBLIC_DISCORD_INVITE` | ссылка-инвайт в Discord (используется для CTA и для получения ID) | ✓ (иначе показывается заглушка) |
+| `NEXT_PUBLIC_DISCORD_GUILD_ID` | цифровой ID сервера для официального виджета `discord.com/widget` | опционально (иначе ID берётся из инвайта) |
+| `NEXT_PUBLIC_DISCORD_WIDGET_THEME` | тема виджета: `light` или `dark` | нет (по умолчанию `light`) |
+| `NEXT_PUBLIC_YOUTUBE_CHANNEL_ID` / `NEXT_PUBLIC_YOUTUBE_PLAYLIST_ID` (или без `NEXT_PUBLIC_`) | RSS-лента для карусели видео (достаточно одного ID) | по умолчанию канал DENDOR/DEWORLD `@deworld_ru` (`UCnPHpCrXyRREynAUPcYnqqA`) |
 | `RATE_LIMIT_ENABLED` | вкл/выкл лимиты запросов (`true`/`false`) | `true` |
 | `ADMIN_EMAIL` | email администратора при `prisma db seed` | нет (default admin@de-world.net) |
 | `ADMIN_PASSWORD` | пароль администратора при `prisma db seed` | нет (иначе сгенерируется и напечатается) |
 
-OAuth-кнопка видна только для провайдера, у которого заполнены ключи (`AUTH_*_ID`).
+> Пингер учитывает SRV `_minecraft._tcp.<host>`: у `mc.de-world.net` он указывает на порт
+> `30077`, поэтому старое значение `25565` больше не показывает сервер оффлайн. YouTube-карусель
+> по умолчанию читает RSS канала `@deworld_ru` (DENDOR); если лента недоступна или канал не задан,
+> ссылка ведёт на конкретный канал, а не на главную YouTube.
+
+OAuth-кнопки (вход и привязка в настройках) видны только для провайдеров, у которых заполнены ключи (`AUTH_*_ID`). Для каждого сервиса зарегистрируйте callback `https://<домен>/api/auth/callback/<провайдер>`. Привязка соцсети к существующему аккаунту идёт через авторизованную сессию и подписанное httpOnly-намерение; отвязка блокируется, если не остаётся пароля, Minecraft-ника или другого OAuth-аккаунта. Токены провайдеров и секреты в UI/логи не выводятся.
+
+> Для Discord-виджета задайте `NEXT_PUBLIC_DISCORD_GUILD_ID` **или** валидную
+> `NEXT_PUBLIC_DISCORD_INVITE` (тогда ID сервера определится через публичный API приглашения).
+> В настройках Discord включите «Виджет сервера» (Server Widget) — иначе iframe покажет ошибку.
+> Если ID получить не удалось, карточка показывает fallback с кнопкой «Присоединиться».
 
 ### Локальная БД / чистый старт
 

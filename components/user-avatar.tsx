@@ -1,8 +1,11 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 
 import { cn } from "@/lib/utils";
 
-/** Аватар пользователя: OAuth image, иначе инициалы на тёплом градиенте. */
+/** Аватар пользователя: картинка (скин/OAuth), иначе инициалы на тёплом градиенте. */
 export function UserAvatar({
   name,
   username,
@@ -16,6 +19,10 @@ export function UserAvatar({
   size?: number;
   className?: string;
 }) {
+  // Битая ссылка (в т.ч. скин недоступного ника) → инициалы вместо иконки.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const src = image && image !== failedSrc ? image : null;
+
   const label = (name ?? username ?? "?").trim();
   const initials = label
     .split(/\s+/)
@@ -25,13 +32,16 @@ export function UserAvatar({
     .join("")
     .toUpperCase();
 
-  if (image) {
+  if (src) {
     return (
       <Image
-        src={image}
+        src={src}
         alt={`Аватар ${label}`}
         width={size}
         height={size}
+        // Аватары внешние и маленькие: отдаём как есть, без /_next/image.
+        unoptimized
+        onError={() => setFailedSrc(src)}
         className={cn("rounded-xl object-cover ring-1 ring-orange-100", className)}
       />
     );

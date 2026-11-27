@@ -5,34 +5,58 @@ import { ExternalLink, MessageCircle, Users } from "lucide-react";
 
 import { DISCORD_INVITE } from "@/lib/constants";
 
-interface WidgetResponse {
+interface GuildResolution {
   configured: boolean;
-  available?: boolean;
-  name?: string;
-  online?: number;
-  members?: Array<{ username: string; avatarUrl: string | null }>;
+  guildId: string | null;
+  source?: "env" | "invite";
+  message?: string;
 }
 
-/** Карточка Discord-сервера с живым онлайном (через прокси /api/discord-widget). */
+type WidgetState =
+  | { status: "loading" }
+  | { status: "ready"; guildId: string }
+  | { status: "fallback" };
+
+const GUILD_ID_RE = /^\d{17,20}$/;
+
+/** Карточка Discord-сервера с официальным Server Widget (iframe discord.com). */
 export function DiscordCard() {
-  const [data, setData] = useState<WidgetResponse | null>(null);
+  const envGuildId = process.env.NEXT_PUBLIC_DISCORD_GUILD_ID?.trim() ?? "";
+  const theme =
+    process.env.NEXT_PUBLIC_DISCORD_WIDGET_THEME?.trim().toLowerCase() === "dark"
+      ? "dark"
+      : "light";
+
+  const [state, setState] = useState<WidgetState>(() =>
+    GUILD_ID_RE.test(envGuildId)
+      ? { status: "ready", guildId: envGuildId }
+      : { status: "loading" },
+  );
 
   useEffect(() => {
+    // ID из NEXT_PUBLIC известен на этапе сборки — лишний запрос не нужен.
+    if (GUILD_ID_RE.test(envGuildId)) return;
+
     let cancelled = false;
     fetch("/api/discord-widget")
-      .then((res) => res.json() as Promise<WidgetResponse>)
-      .then((json) => {
-        if (!cancelled) setData(json);
+      .then((res) =>
+        res.ok ? (res.json() as Promise<GuildResolution>) : Promise.reject(),
+      )
+      .then((data) => {
+        if (cancelled) return;
+        setState(
+          data.guildId && GUILD_ID_RE.test(data.guildId)
+            ? { status: "ready", guildId: data.guildId }
+            : { status: "fallback" },
+        );
       })
       .catch(() => {
-        if (!cancelled) setData({ configured: false });
+        if (!cancelled) setState({ status: "fallback" });
       });
     return () => {
       cancelled = true;
     };
-  }, []);
-
-  const online = data?.available ? data.online : undefined;
+  }, [envGuildId]);
 
   return (
     <div className="flex h-full flex-col rounded-2xl border border-orange-100 bg-white p-6 shadow-sm">
@@ -47,37 +71,28 @@ export function DiscordCard() {
       </div>
 
       <div className="mt-4 flex-1">
-        {online != null ? (
+        {state.status === "loading" ? (
+          <div className="flex h-[500px] items-center justify-center rounded-xl bg-orange-50/60 ring-1 ring-orange-100">
+            <p className="text-sm text-stone-500">Подключаем Discord…</p>
+          </div>
+        ) : state.status === "ready" ? (
           <>
-            <p className="flex items-center gap-2 text-sm font-medium text-stone-800">
-              <Users size={16} className="text-emerald-500" aria-hidden />
-              <span>
-                <span className="font-display text-base text-stone-900">{online}</span> в сети сейчас
-              </span>
+            <div className="mx-auto w-full max-w-[350px] overflow-hidden rounded-xl bg-[#f2f3f5] shadow-sm ring-1 ring-orange-100">
+              <iframe
+                title="Официальный виджет сервера DEWORLD в Discord"
+                src={`https://discord.com/widget?id=${encodeURIComponent(state.guildId)}&theme=${theme}`}
+                width={350}
+                height={500}
+                allowTransparency
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"
+                className="block h-[500px] w-full border-0"
+              />
+            </div>
+            <p className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-stone-500">
+              <Users size={12} aria-hidden /> Онлайн и участники — прямо из Discord
             </p>
-            {data?.members && data.members.length > 0 && (
-              <ul className="mt-3 flex flex-wrap gap-2" aria-label="Кто сейчас в сети">
-                {data.members.map((member) => (
-                  <li
-                    key={member.username}
-                    title={member.username}
-                    className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-violet-100 text-xs font-bold uppercase text-violet-700 ring-2 ring-white"
-                  >
-                    {member.avatarUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={member.avatarUrl}
-                        alt={member.username}
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      member.username.slice(0, 2)
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
           </>
         ) : (
           <ul className="space-y-1.5 text-sm text-stone-600">
@@ -92,9 +107,9 @@ export function DiscordCard() {
         href={DISCORD_INVITE}
         target="_blank"
         rel="noopener noreferrer"
-        className="focus-ring mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-[#5865F2] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#4752c4]"
+        className="focus-ring mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-[#4752c4] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#3645a3]"
       >
-        Открыть Discord
+        Присоединиться
         <ExternalLink size={15} aria-hidden />
       </a>
     </div>

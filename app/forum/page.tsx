@@ -19,6 +19,8 @@ import { getServerSession } from "@/lib/server-auth";
 import { prisma } from "@/lib/db";
 import { topicVisibilityWhere } from "@/lib/forum-visibility";
 import { plural, timeAgo } from "@/lib/utils";
+import { getSiteStats } from "@/lib/stats";
+import { SiteStatsPanel } from "@/components/site-stats";
 
 export const metadata: Metadata = {
   title: "Форум",
@@ -46,7 +48,7 @@ export default function ForumPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-orange-600">
             Форум
           </p>
-          <h1 className="mt-2 font-display text-3xl text-stone-900 sm:text-4xl">
+          <h1 className="mt-2 font-display text-2xl text-stone-900 sm:text-3xl">
             Обсуждения сообщества
           </h1>
           <p className="mt-2 max-w-xl text-stone-600">
@@ -84,12 +86,12 @@ export default function ForumPage() {
       {/* ── Разделы + сайдбар ───────────────────────────────────────── */}
       <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
         <div className="grid gap-10 lg:grid-cols-12">
-          <div className="lg:col-span-8">
+          <div className="min-w-0 lg:col-span-8">
             <Suspense fallback={<ForumCategoriesSkeleton />}>
               <ForumCategories />
             </Suspense>
           </div>
-          <aside className="lg:col-span-4">
+          <aside className="min-w-0 lg:col-span-4">
             <Suspense fallback={<div className="skeleton h-64 rounded-2xl" />}>
               <LatestTopicsSidebar />
             </Suspense>
@@ -210,21 +212,25 @@ async function LatestTopicsSidebar() {
     ? { role: session.user.role, premiumUntil: session.user.premiumUntil }
     : null;
 
-  const latestTopics = await prisma.topic.findMany({
-    where: topicVisibilityWhere(viewer),
-    orderBy: { lastPostAt: "desc" },
-    take: 5,
-    select: {
-      slug: true,
-      title: true,
-      replyCount: true,
-      lastPostAt: true,
-      category: { select: { name: true, slug: true } },
-    },
-  });
+  const [latestTopics, stats] = await Promise.all([
+    prisma.topic.findMany({
+      where: topicVisibilityWhere(viewer),
+      orderBy: { lastPostAt: "desc" },
+      take: 5,
+      select: {
+        slug: true,
+        title: true,
+        replyCount: true,
+        lastPostAt: true,
+        category: { select: { name: true, slug: true } },
+      },
+    }),
+    getSiteStats(),
+  ]);
 
   return (
     <div className="space-y-6">
+      <SiteStatsPanel initial={stats} tone="light" compact />
       <div className="rounded-2xl border border-orange-100 bg-white p-5 shadow-sm">
         <h2 className="flex items-center gap-2 font-semibold text-stone-900">
           <BookOpenCheck size={18} className="text-orange-500" aria-hidden />

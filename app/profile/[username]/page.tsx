@@ -135,7 +135,7 @@ async function ProfileContent({
 
       <div className="mt-8 grid gap-8 lg:grid-cols-12">
         {/* Статистика */}
-        <div className="lg:col-span-4">
+        <div className="min-w-0 lg:col-span-4">
           <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-orange-600">
             Статистика
           </h2>
@@ -166,7 +166,7 @@ async function ProfileContent({
         </div>
 
         {/* Достижения */}
-        <div className="lg:col-span-8">
+        <div className="min-w-0 lg:col-span-8">
           <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-orange-600">
             Достижения
           </h2>
